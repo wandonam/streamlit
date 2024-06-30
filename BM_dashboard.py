@@ -1,4 +1,4 @@
-# SET UP
+# Library
 import streamlit as st
 from streamlit_option_menu import option_menu
 import streamlit.components.v1 as html
@@ -8,9 +8,34 @@ from  PIL import Image
 import numpy as np
 import pandas as pd
 import io
+import os
 
 # FONT
-font_path = r'C:\Users\dohoo\AppData\Local\Microsoft\Windows\Fonts\NotoSansKR-Bold.ttf'
+## Define Font
+def extract_font_name(font_path):
+    font_name = os.path.basename(font_path).split('.')[0]
+    return font_name
+
+def get_font_path_by_name(font_name):
+    if font_name in df_fonts['Font Name'].values:
+        return df_fonts.loc[df_fonts['Font Name'] == font_name, 'Font Path'].values[0]
+    else:
+        return "Font name not found"
+    
+## Get list
+font_list = fm.findSystemFonts(fontpaths=None, fontext='ttf')
+
+## DataFrame
+font_data = []
+for font_path in font_list:
+    font_name = extract_font_name(font_path)
+    font_data.append([font_name, font_path])
+
+df_fonts = pd.DataFrame(font_data, columns=['Font Name', 'Font Path'])
+
+## usage
+font_name_input = "NotoSansKR-Light"  # Replace with the desired font name
+font_path = get_font_path_by_name(font_name_input)
 font_prop = fm.FontProperties(fname=font_path)
 plt.rcParams['font.family'] = font_prop.get_name()
 
@@ -21,7 +46,7 @@ plt.rcParams['axes.prop_cycle'] = plt.cycler(color=[
 ])
 
 # FEATURE
-df_original = pd.read_excel(r'C:\Users\dohoo\Desktop\JUPYTER\workspace\gross\raw_2024.xlsx')
+df_original = pd.read_excel(r'.\raw_2024.xlsx')
 
 df_gross = pd.DataFrame()
 
