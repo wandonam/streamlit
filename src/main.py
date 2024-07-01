@@ -9,35 +9,11 @@ import numpy as np
 import pandas as pd
 import io
 import os
+import font
 
-# FONT
-## Define Font
-def extract_font_name(font_path):
-    font_name = os.path.basename(font_path).split('.')[0]
-    return font_name
-
-def get_font_path_by_name(font_name):
-    if font_name in df_fonts['Font Name'].values:
-        return df_fonts.loc[df_fonts['Font Name'] == font_name, 'Font Path'].values[0]
-    else:
-        return "Font name not found"
-    
-## Get list
-font_list = fm.findSystemFonts(fontpaths=None, fontext='ttf')
-
-## DataFrame
-font_data = []
-for font_path in font_list:
-    font_name = extract_font_name(font_path)
-    font_data.append([font_name, font_path])
-
-df_fonts = pd.DataFrame(font_data, columns=['Font Name', 'Font Path'])
-
-## usage
-font_name_input = "NotoSansKR-Light"  # Replace with the desired font name
-font_path = get_font_path_by_name(font_name_input)
-font_prop = fm.FontProperties(fname=font_path)
-plt.rcParams['font.family'] = font_prop.get_name()
+##FONT
+font_name = "Pretendard-SemiBold"
+font.set_font(font_name)
 
 # COLOR
 plt.rcParams['axes.prop_cycle'] = plt.cycler(color=[
@@ -46,7 +22,10 @@ plt.rcParams['axes.prop_cycle'] = plt.cycler(color=[
 ])
 
 # FEATURE
-df_original = pd.read_excel(r'.\raw_2024.xlsx')
+current_dir = os.path.dirname(__file__)
+parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
+data_file_path = os.path.join(parent_dir, 'data', 'raw', 'raw_2024.xlsx')
+df_original = pd.read_excel(data_file_path)
 
 df_gross = pd.DataFrame()
 
