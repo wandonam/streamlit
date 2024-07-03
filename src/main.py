@@ -10,16 +10,11 @@ import pandas as pd
 import io
 import os
 import font
+from colors import Color
 
 ##FONT
 font_name = "Pretendard-SemiBold"
 font.set_font(font_name)
-
-# COLOR
-plt.rcParams['axes.prop_cycle'] = plt.cycler(color=[
-    '#FFB5E8', '#B28DFF', '#AFF8DB', '#FFABAB', '#FFC3A0', '#FFFFD1',
-    '#FF9CEE', '#BFFCC6', '#CFCFCF', '#97A2FF'
-])
 
 # FEATURE
 current_dir = os.path.dirname(__file__)
@@ -89,12 +84,11 @@ with st.sidebar:
                          icons=['bi bi-1-square-fill', 'bi bi-2-square-fill', 'bi bi-3-square-fill', 'bi bi-4-square-fill'],
                          menu_icon="bi bi-activity", default_index=0,
                          styles={
-                         # default_index = 처음에 보여줄 페이지 인덱스 번호
-        "container": {"padding": "5!important", "background-color": "#fafafa"},
+        "container": {"padding": "5!important", "background-color": Color.WHITE},
         "icon": {"color": "black", "font-size": "16px"}, 
-        "nav-link": {"font-size": "16px", "text-align": "left", "margin":"0px", "--hover-color": "#d3d3d3"},
-        "nav-link-selected": {"background-color": "#b3e5fc"},
-    } # css 설정
+        "nav-link": {"font-size": "16px", "text-align": "left", "margin":"0px", "--hover-color": Color.GRAY},
+        "nav-link-selected": {"background-color": Color.SKYBLUE},
+    }
     )
 
 if menu == 'Total Sales':
