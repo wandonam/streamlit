@@ -1,7 +1,8 @@
-# Library
+# LIBRARY
 import streamlit as st
 from streamlit_option_menu import option_menu
 import streamlit.components.v1 as html
+import plotly.express as px
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 from  PIL import Image
@@ -11,72 +12,18 @@ import io
 import os
 import font
 from colors import Color
+from feature import feature_engineering
 
 ##FONT
 font_name = "Pretendard-SemiBold"
 font.set_font(font_name)
 
-# FEATURE
+##Dataframe
+feature_engineering()
 current_dir = os.path.dirname(__file__)
 parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
-data_file_path = os.path.join(parent_dir, 'data', 'raw', 'raw_2024.xlsx')
-df_original = pd.read_excel(data_file_path)
-
-df_gross = pd.DataFrame()
-
-## Datetime
-df_gross['date'] = df_original['결제일']
-df_gross['year'] = df_original['결제일'].dt.year
-df_gross['month'] = df_original['결제일'].dt.month
-df_gross['day'] = df_original['결제일'].dt.day
-
-weekday_map = {0: '월', 1: '화', 2: '수', 3: '목', 4: '금', 5: '토', 6: '일'}
-df_gross['weekday'] = df_original['결제일'].dt.weekday.map(weekday_map)
-
-df_gross['hour'] = df_original['출고일'].dt.hour
-
-def convert_hour_to_text(hour):
-    if hour == 0:
-        return 'Other'
-    elif 1 <= hour < 6:
-        return 'Dawn'
-    elif 6 <= hour < 12:
-        return 'Morning'
-    elif 12 <= hour < 18:
-        return 'Afternoon'
-    elif 18 <= hour < 24:
-        return 'Evening'
-    else:
-        return 'Other'
-
-df_gross['hour'] = df_gross['hour'].apply(convert_hour_to_text)
-
-## Channel
-
-df_gross['channel'] = df_original['매출처']
-
-def change_sales_channel(value):
-    mapping = {
-        '쿠팡윙': 'wing',
-        '로켓그로스': 'growth',
-        '스마트스토어': 'smartstore',
-        '자사몰': 'cafe24'
-    }
-    return mapping.get(value, 'Other')
-
-df_gross['channel'] = df_gross['channel'].apply(change_sales_channel)
-
-## Product
-df_gross['product'] = df_original['상품명']
-df_original['옵션명'] = df_original['옵션명'].replace('기타', '1')
-df_original['입수량'] = df_original['옵션명'].str.replace('BOX', '').astype(int)
-df_gross['option'] = df_original['옵션명']
-
-## Sales
-df_gross['quantity'] = df_original['수량'].fillna(0)
-df_gross['quantity'] = df_gross['quantity'].astype(int)
-df_gross['sales'] = df_original['총\n결제가'].astype(int)
-
+file_path = os.path.join(parent_dir, 'data', 'processed', 'gross.pkl')
+df_gross = pd.read_pickle(file_path)
 
 #STREAMLIT
 with st.sidebar:
@@ -110,9 +57,16 @@ if menu == 'Total Sales':
     # 날짜 형식을 "MM-DD"로 변경
     sales_per_date['formatted_date'] = sales_per_date['date'].dt.strftime('%m-%d')
 
-    # 매출 그래프 그리기
-    plt.figure(figsize=(14, 8))
-    plt.plot(sales_per_date.index, sales_per_date['sales'], marker='o', label='SELECT Period', color='#ff0000')
+    # 그래프 유형 선택 드롭다운 메뉴
+    graph_type = st.selectbox('Select Graph Type', ['Line Plot', 'Bar Plot'])
+
+    plt.figure(figsize=(18, 14))
+
+    if graph_type == 'Line Plot':
+        plt.plot(sales_per_date.index, sales_per_date['sales'], marker='o', label='SELECT Period', color='#ff0000')
+    elif graph_type == 'Bar Plot':
+        plt.bar(sales_per_date.index, sales_per_date['sales'], label='SELECT Period', color='#ff0000')
+
     plt.xlabel('DATE')
     plt.ylabel('SALES')
     plt.title('Sales by Date ')
@@ -123,7 +77,7 @@ if menu == 'Total Sales':
 
     # 백만 단위로 값 표시
     for i, row in sales_per_date.iterrows():
-        plt.text(i, row['sales'], f'{row["sales"]/1e6:.1f}M', fontsize=8, ha='center', va='bottom')
+        plt.text(i, row['sales'], f'{row["sales"]/1e6:.1f}M', fontsize=12, ha='center', va='bottom')
 
     # 비교 기간 추가 체크박스
     compare = st.checkbox('ADD Period')
@@ -132,7 +86,7 @@ if menu == 'Total Sales':
         compare_start_date = st.date_input('COMPARE', initial_start_date, key='compare_start_date')
         compare_end_date = compare_start_date + (end_date - start_date)
         
-        st.write(f"COMEPARE Period: {compare_start_date.strftime('%Y-%m-%d')} to {compare_end_date.strftime('%Y-%m-%d')}")
+        st.write(f"COMPARE Period: {compare_start_date.strftime('%Y-%m-%d')} to {compare_end_date.strftime('%Y-%m-%d')}")
 
         compare_filtered_data = df_gross[(df_gross['date'] >= pd.to_datetime(compare_start_date)) & (df_gross['date'] <= pd.to_datetime(compare_end_date))]
         compare_sales_per_date = compare_filtered_data.groupby('date')['sales'].sum().reset_index()
@@ -147,11 +101,14 @@ if menu == 'Total Sales':
         compare_sales_per_date['formatted_date'] = compare_sales_per_date['date'].dt.strftime('%m-%d')
 
         # 비교 기간 매출 그래프 추가
-        plt.plot(compare_sales_per_date.index, compare_sales_per_date['sales'], marker='o', linestyle='--', label='COMEPARE Period', color='#0092ff')
+        if graph_type == 'Line Plot':
+            plt.plot(compare_sales_per_date.index, compare_sales_per_date['sales'], marker='o', linestyle='--', label='COMPARE Period', color='#0092ff')
+        elif graph_type == 'Bar Plot':
+            plt.bar(compare_sales_per_date.index, compare_sales_per_date['sales'], label='COMPARE Period', color='#0092ff')
 
         # 백만 단위로 값 표시
         for i, row in compare_sales_per_date.iterrows():
-            plt.text(i, row['sales'], f'{row["sales"]/1e6:.1f}M', fontsize=8, ha='center', va='bottom')
+            plt.text(i, row['sales'], f'{row["sales"]/1e6:.1f}M', fontsize=12, ha='center', va='bottom')
 
     plt.legend()
     st.pyplot(plt)
