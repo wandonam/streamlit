@@ -28,7 +28,7 @@ df_gross = pd.read_pickle(file_path)
 
 #STREAMLIT
 with st.sidebar:
-    menu = option_menu("BM", ["Total Sales", "Trend by Channel", "Trend by Product", "Detailed by Channel"],
+    menu = option_menu("BM", ["Total", "Channel", "Product", "Detailed"],
                          icons=['bi bi-1-square-fill', 'bi bi-2-square-fill', 'bi bi-3-square-fill', 'bi bi-4-square-fill'],
                          menu_icon="bi bi-activity", default_index=0,
                          styles={
@@ -39,7 +39,7 @@ with st.sidebar:
     }
     )
 
-if menu == 'Total Sales':
+if menu == 'Total':
     st.write('#### **Total Sales**')
 
 
@@ -116,7 +116,7 @@ if menu == 'Total Sales':
     plt.legend()
     st.pyplot(plt)
 
-elif menu == 'Trend by Channel':
+elif menu == 'Channel':
     st.write('#### **Trend by Channel**')
     st.write('##### Dataframe')
     channel_pivot = pd.pivot_table(df_gross, values='sales', index=['date'], columns=['channel'], aggfunc='sum')
@@ -225,7 +225,7 @@ elif menu == 'Trend by Channel':
     plt.legend()
     st.pyplot(plt)
 
-elif menu == 'Trend by Product':
+elif menu == 'Product':
     st.write('#### **Trend by Product**')
     st.write('##### Product')
 
@@ -305,7 +305,7 @@ elif menu == 'Trend by Product':
     plt.title(f'Sales by Option: {selected_product}')
     st.pyplot(plt)
 
-elif menu == 'Detailed by Channel':
+elif menu == 'Detailed':
     st.write('#### **Detailed by Channel**')
 
     # 초기 세팅: 마지막 일의 해당 월의 1일
