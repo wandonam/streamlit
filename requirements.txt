@@ -1,5 +1,6 @@
 streamlit
 streamlit_option_menu
+streamlit-aggrid
 pandas
 matplotlib
-streamlit-elements==0.1.*
+plotly

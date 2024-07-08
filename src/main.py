@@ -2,9 +2,10 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
 import streamlit.components.v1 as html
-import plotly.express as px
+from st_aggrid import AgGrid, GridOptionsBuilder
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
+import plotly.express as px
 from  PIL import Image
 import numpy as np
 import pandas as pd
@@ -39,7 +40,9 @@ with st.sidebar:
     )
 
 if menu == 'Total Sales':
-    st.title('Total Sales')
+    st.write('#### **Total Sales**')
+
+
 
     # 초기 세팅: 마지막 일의 해당 월의 1일
     initial_end_date = df_gross['date'].max()
@@ -60,7 +63,7 @@ if menu == 'Total Sales':
     # 그래프 유형 선택 드롭다운 메뉴
     graph_type = st.selectbox('Select Graph Type', ['Line Plot', 'Bar Plot'])
 
-    plt.figure(figsize=(18, 14))
+    plt.figure(figsize=(14, 8))
 
     if graph_type == 'Line Plot':
         plt.plot(sales_per_date.index, sales_per_date['sales'], marker='o', label='SELECT Period', color='#ff0000')
@@ -114,10 +117,27 @@ if menu == 'Total Sales':
     st.pyplot(plt)
 
 
-
 elif menu == 'Trend by Channel':
-    st.title('Trend by Channel')
+    st.write('#### **Trend by Channel**')
+    st.write('##### Dataframe')
+    channel_pivot = pd.pivot_table(df_gross, values='sales', index=['date'], columns=['channel'], aggfunc='sum')
+    channel_pivot['Total'] = channel_pivot.sum(axis=1)
+    channel_pivot = channel_pivot[['cafe24', 'growth', 'smartstore', 'wing', 'Other', 'Total']]
+    channel_pivot = channel_pivot.sort_index(ascending=False)
+    channel_pivot = channel_pivot.fillna(0)
+    channel_pivot = channel_pivot.astype(int)
+    channel_pivot.index = pd.to_datetime(channel_pivot.index).strftime('%y-%m-%d')
 
+    gb = GridOptionsBuilder.from_dataframe(channel_pivot.reset_index())
+    gb.configure_default_column(filterable=True, sortable=True)
+    gb.configure_pagination(paginationAutoPageSize=True)
+    gridOptions = gb.build()
+
+    # AgGrid를 사용해 데이터프레임 표시
+    aggrid_response = AgGrid(channel_pivot.reset_index(), gridOptions=gridOptions, enable_enterprise_modules=True)
+
+
+    st.write('##### Vizualization')
     # 채널 리스트
     channels = df_gross['channel'].unique()
     selected_channels = st.multiselect('SELECT CHANNELS', channels, default=channels)
