@@ -6,6 +6,7 @@ from st_aggrid import AgGrid, GridOptionsBuilder
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 from matplotlib.font_manager import FontProperties
+from matplotlib import font_manager, rc
 import plotly.express as px
 from  PIL import Image
 import numpy as np
@@ -33,8 +34,8 @@ def get_base64_encoded_font(font_path):
 
 encoded_font = get_base64_encoded_font(font_path)
 
-font_prop = FontProperties(fname=font_path)
-rcParams['font.family'] = font_prop.get_name()
+font_name = font_manager.FontProperties(fname=font_path).get_name()
+rc('font', family=font_name)
 
 #STREAMLIT
 with st.sidebar:
