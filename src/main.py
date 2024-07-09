@@ -4,7 +4,8 @@ from streamlit_option_menu import option_menu
 import streamlit.components.v1 as html
 from st_aggrid import AgGrid, GridOptionsBuilder
 import matplotlib.pyplot as plt
-import matplotlib.font_manager as FontProperties
+from matplotlib import rcParams
+from matplotlib.font_manager import FontProperties
 import plotly.express as px
 from  PIL import Image
 import numpy as np
@@ -30,8 +31,10 @@ def get_base64_encoded_font(font_path):
         encoded_string = base64.b64encode(font_file.read()).decode()
     return encoded_string
 
+encoded_font = get_base64_encoded_font(font_path)
+
 font_prop = FontProperties(fname=font_path)
-plt.rcParams['font.family'] = font_prop.get_name()
+rcParams['font.family'] = font_prop.get_name()
 
 #STREAMLIT
 with st.sidebar:
