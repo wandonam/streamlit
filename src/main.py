@@ -35,6 +35,7 @@ def get_base64_encoded_font(font_path):
 encoded_font = get_base64_encoded_font(font_path)
 
 font_name = font_manager.FontProperties(fname=font_path).get_name()
+font_manager.fontManager.addfont(font_path)
 rc('font', family=font_name)
 
 #STREAMLIT
