@@ -14,17 +14,24 @@ import os
 import font
 from colors import Color
 from feature import feature_engineering
+import base64
 
 ##FONT
 #font_name = "Pretendard-SemiBold"
-#font.set_font(font_name)
+#font.set_font(font_path)
 
 ##Dataframe
 feature_engineering()
 current_dir = os.path.dirname(__file__)
 parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
 file_path = os.path.join(parent_dir, 'data', 'processed', 'gross.pkl')
+font_path = os.path.join(parent_dir, 'data', 'font', 'Pretendard-SemiBold.ttf')
 df_gross = pd.read_pickle(file_path)
+
+def get_base64_encoded_font(font_path):
+    with open(font_path, "rb") as font_file:
+        encoded_string = base64.b64encode(font_file.read()).decode()
+    return encoded_string
 
 #STREAMLIT
 with st.sidebar:
