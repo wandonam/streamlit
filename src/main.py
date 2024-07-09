@@ -16,8 +16,8 @@ from colors import Color
 from feature import feature_engineering
 
 ##FONT
-#font_name = "Pretendard-SemiBold"
-#font.set_font(font_name)
+font_name = "Pretendard-SemiBold"
+font.set_font(font_name)
 
 ##Dataframe
 feature_engineering()
