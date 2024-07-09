@@ -4,21 +4,17 @@ from streamlit_option_menu import option_menu
 import streamlit.components.v1 as html
 from st_aggrid import AgGrid, GridOptionsBuilder
 import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
+import matplotlib.font_manager as FontProperties
 import plotly.express as px
 from  PIL import Image
 import numpy as np
 import pandas as pd
 import io
 import os
-import font
 from colors import Color
 from feature import feature_engineering
 import base64
 
-##FONT
-#font_name = "Pretendard-SemiBold"
-#font.set_font(font_path)
 
 ##Dataframe
 feature_engineering()
@@ -28,10 +24,14 @@ file_path = os.path.join(parent_dir, 'data', 'processed', 'gross.pkl')
 font_path = os.path.join(parent_dir, 'data', 'font', 'Pretendard-SemiBold.ttf')
 df_gross = pd.read_pickle(file_path)
 
+##FONT
 def get_base64_encoded_font(font_path):
     with open(font_path, "rb") as font_file:
         encoded_string = base64.b64encode(font_file.read()).decode()
     return encoded_string
+
+font_prop = FontProperties(fname=font_path)
+plt.rcParams['font.family'] = font_prop.get_name()
 
 #STREAMLIT
 with st.sidebar:
