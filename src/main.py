@@ -29,6 +29,7 @@ file_path = os.path.join(parent_dir, 'data', 'processed', 'gross.pkl')
 font_path = os.path.join(parent_dir, 'data', 'font', 'Pretendard-SemiBold.ttf')
 df_gross = pd.read_pickle(file_path)
 
+
 ##FONT
 def get_base64_encoded_font(font_path):
     with open(font_path, "rb") as font_file:
@@ -40,6 +41,7 @@ encoded_font = get_base64_encoded_font(font_path)
 font_name = font_manager.FontProperties(fname=font_path).get_name()
 font_manager.fontManager.addfont(font_path)
 rc('font', family=font_name)
+
 
 #STREAMLIT
 with st.sidebar:
@@ -122,10 +124,40 @@ elif menu == 'Channel':
         fit_columns_on_grid_load=True,
         update_mode='MODEL_CHANGED')
     
-    months = df_gross['date'].dt.strftime('%Y-%m').unique()
-    selected_month = st.selectbox('Select Month', months)
-    
-    
+    channels = ['cafe24', 'growth', 'smartstore', 'wing', 'Other']
+    selected_channels = st.multiselect('Select Channels', channels, default=channels)
+
+    fig = go.Figure()
+
+    channel_pivot_sorted = channel_pivot.sort_index()
+
+    ch_colors = {
+        'cafe24': Color.CF24,
+        'growth': Color.BROWN,
+        'smartstore': Color.SS,
+        'wing': Color.CP,
+        'Other': Color.ETC
+    }
+
+    for channel in selected_channels:
+        fig.add_trace(go.Scatter(
+            x=channel_pivot_sorted.index,
+            y=channel_pivot_sorted[channel],
+            mode='lines+markers+text',
+            name=channel,
+            line=dict(color=ch_colors[channel]),
+            text=[f'{s/1e6:.1f}M' for s in channel_pivot_sorted[channel]],
+            textposition='top center'
+        ))
+
+    fig.update_layout(
+        xaxis_title='Date',
+        yaxis_title='Sales',
+        xaxis_tickangle=-45,
+        height=600
+    )
+
+    st.plotly_chart(fig)
 
 elif menu == 'Product':
     st.write('#### **Trend by Product**')

@@ -9,6 +9,11 @@ class Color:
     BLACK = "#262730"
     R_BLACK = "#000000"
     S_GRAY = "#bcbcbc"
+    CF24 = "#fce5cd"
+    SS = "#b6d7a8"
+    CP = "#e07366"
+    RG = "#9fc5e8"
+    ETC = "#f8f2f2"
 
     def get_color(cls, name):
-        return getattr(cls, name.upper(), none)
+        return getattr(cls, name.upper(), None)
