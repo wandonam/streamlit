@@ -6,10 +6,7 @@ import pandas as pd
 
 def feature_engineering():
     ##### Load data
-    current_dir = os.path.dirname(__file__)
-    parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
-    data_file_path = os.path.join(parent_dir, 'data', 'raw', 'raw_2024.xlsx')
-    df_original = pd.read_excel(data_file_path)
+    df_original = pd.read_excel(rf'..\data\raw\raw_2024.xlsx')
 
 
 
@@ -76,7 +73,4 @@ def feature_engineering():
 
 
     ## Save
-    processed_dir_path = os.path.join(parent_dir, 'data', 'processed')
-    os.makedirs(processed_dir_path, exist_ok=True)
-    processed_file_path = os.path.join(processed_dir_path, 'gross.pkl')
-    df_gross.to_pickle(processed_file_path)
+    df_gross.to_pickle('..\data\processed\gross.pkl')

@@ -23,11 +23,8 @@ from datetime import datetime, timedelta
 
 ##Dataframe
 feature_engineering()
-current_dir = os.path.dirname(__file__)
-parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
-file_path = os.path.join(parent_dir, 'data', 'processed', 'gross.pkl')
-font_path = os.path.join(parent_dir, 'data', 'font', 'Pretendard-SemiBold.ttf')
-df_gross = pd.read_pickle(file_path)
+font_path = os.path.join(rf'..\data\font\Pretendard-SemiBold.ttf')
+df_gross = pd.read_pickle(rf'..\data\processed\gross.pkl')
 
 
 ##FONT
@@ -188,7 +185,7 @@ elif menu == 'Product':
     num_days = (pd.to_datetime(end_date) - pd.to_datetime(start_date)).days + 1
     
     average_daily_sales_per_product = total_sales_per_product / num_days
-    filtered_products = average_daily_sales_per_product[average_daily_sales_per_product > 100000].index
+    filtered_products = average_daily_sales_per_product[average_daily_sales_per_product > 30000].index
 
 
     sales_per_product = total_sales_per_product[filtered_products]
@@ -205,39 +202,53 @@ elif menu == 'Product':
 
     # 다시 계산된 데이터를 사용하여 매출 합계 재계산
     sales_per_product = filtered_data.groupby('product')['sales'].sum()
-    sales_per_product = sales_per_product[average_daily_sales_per_product[average_daily_sales_per_product > 100000].index]
+    sales_per_product = sales_per_product[average_daily_sales_per_product[average_daily_sales_per_product > 30000].index]
     sales_per_product = sales_per_product.sort_values(ascending=False)
 
-    plt.figure(figsize=(14, 8))
-    bars = sales_per_product.plot(kind='bar', color=plt.cm.Paired(range(len(sales_per_product))))
+    bar_fig = px.bar(
+        x=sales_per_product.index, 
+        y=sales_per_product.values,
+        labels={'x': 'Product', 'y': 'Sales'},
+        title='Sales by Product',
+        color=sales_per_product.index
+    )
 
-    plt.xlabel('Product')
-    plt.ylabel('Sales')
-    plt.title('Sales by Product')
-    plt.grid(True)
+    bar_fig.update_layout(
+        xaxis_title='Product', 
+        yaxis_title='Sales', 
+        title='Sales by Product',
+        xaxis_tickangle=-45,
+        height=600,
+        width=1200
+    )
+    bar_fig.update_traces(texttemplate='%{y:.2s}', textposition='outside')
 
-    plt.xticks(rotation=45)
+    st.plotly_chart(bar_fig)
 
-    for i, sales in enumerate(sales_per_product):
-        plt.text(i, sales, f'{sales/1e6:.1f}M', fontsize=12, ha='center', va='bottom')
-    
-    st.pyplot(plt)
+    # Plotly로 꺾은선 그래프 그리기
+    line_fig = go.Figure()
 
-    st.write('##### Option')
-    selected_product = st.selectbox('SELECT PRODUCT', sales_per_product.index)
-    if selected_product:
-        product_data = filtered_data[filtered_data['product'] == selected_product]
-        option_distribution = product_data['option'].value_counts(normalize=True) * 100
+    for product in filtered_products:
+        product_data = filtered_data[filtered_data['product'] == product]
+        product_sales_per_day = product_data.groupby('date')['sales'].sum().reindex(pd.date_range(start_date, end_date, freq='D'), fill_value=0)
+        
+        line_fig.add_trace(go.Scatter(
+            x=product_sales_per_day.index, 
+            y=product_sales_per_day.values, 
+            mode='lines+markers+text', 
+            name=product,
+            text=[f'{s/1e6:.1f}M' for s in product_sales_per_day],
+            textposition='top center'
+        ))
 
-    if selected_product:
-        product_data = filtered_data[filtered_data['product'] == selected_product]
-        option_sales_distribution = product_data.groupby('option')['sales'].sum()
-        option_sales_percentage = (option_sales_distribution / option_sales_distribution.sum()) * 100
+    line_fig.update_layout(
+        xaxis_title='Date',
+        yaxis_title='Sales',
+        xaxis_tickangle=-45,
+        height=600
+    )
 
-    plt.figure(figsize=(14, 14))
-    plt.pie(option_distribution, labels=option_distribution.index, autopct='%1.1f%%', startangle=90, colors=plt.cm.Paired(range(len(option_distribution))))
-    plt.title(f'Sales by Option: {selected_product}')
-    st.pyplot(plt)
+    st.plotly_chart(line_fig)
 
 elif menu == 'Detailed':
     st.write('#### **Detailed by Channel**')
