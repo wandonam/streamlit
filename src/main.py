@@ -68,11 +68,17 @@ if menu == 'Total':
     #formatted_date: mm-dd (a)
     sales_per_date_2024['formatted_date'] = sales_per_date_2024['date'].dt.strftime('%m-%d (%a)')
 
+    end_date = sales_per_date_2024['date'].max()
+    start_date = end_date - timedelta(days=7)
 
+    date_range = st.date_input('SELECT DATE', (start_date, end_date))
+    start_date, end_date = date_range
+
+    # Plotly 그래프 생성
     fig = go.Figure()
 
     fig.add_trace(go.Scatter(
-        x=sales_per_date_2024['formatted_date'], 
+        x=sales_per_date_2024['date'], 
         y=sales_per_date_2024['sales'], 
         mode='lines+markers+text', 
         name='2024', 
@@ -83,9 +89,13 @@ if menu == 'Total':
         textposition='top center'
     ))
 
+    # x축 범위 설정: 사용자 선택에 따른 기간
+    fig.update_xaxes(range=[start_date, end_date])
+
     fig.update_layout(
         xaxis_title='Date',
         yaxis_title='Sales',
+        xaxis_tickformat='%m-%d (%a)',  # x축 포맷 설정
         xaxis_tickangle=-45,
         height=600
     )
@@ -121,12 +131,26 @@ elif menu == 'Channel':
         fit_columns_on_grid_load=True,
         update_mode='MODEL_CHANGED')
     
+    df_gross['date'] = pd.to_datetime(df_gross['date'])
+    channel_pivot2 = pd.pivot_table(df_gross, values='sales', index=['date'], columns=['channel'], aggfunc='sum')
+    channel_pivot2['Total'] = channel_pivot2.sum(axis=1)
+    channel_pivot2 = channel_pivot2[['cafe24', 'growth', 'smartstore', 'wing', 'Other', 'Total']]
+    channel_pivot2 = channel_pivot2.sort_index()
+    channel_pivot2 = channel_pivot2.fillna(0)
+    channel_pivot2 = channel_pivot2.astype(int)
+
+    # 채널 선택
     channels = ['cafe24', 'growth', 'smartstore', 'wing', 'Other']
     selected_channels = st.multiselect('Select Channels', channels, default=channels)
 
     fig = go.Figure()
 
-    channel_pivot_sorted = channel_pivot.sort_index()
+    # 초기 화면을 마지막 날짜로부터 7일간 설정
+    end_date = channel_pivot2.index.max()
+    start_date = end_date - timedelta(days=7)
+
+    date_range = st.date_input('SELECT DATE', (start_date, end_date))
+    start_date, end_date = date_range
 
     ch_colors = {
         'cafe24': Color.CF24,
@@ -138,18 +162,22 @@ elif menu == 'Channel':
 
     for channel in selected_channels:
         fig.add_trace(go.Scatter(
-            x=channel_pivot_sorted.index,
-            y=channel_pivot_sorted[channel],
+            x=channel_pivot2.index,
+            y=channel_pivot2[channel],
             mode='lines+markers+text',
             name=channel,
             line=dict(color=ch_colors[channel]),
-            text=[f'{s/1e6:.1f}M' for s in channel_pivot_sorted[channel]],
+            text=[f'{s/1e6:.1f}M' for s in channel_pivot2[channel]],
             textposition='top center'
         ))
+
+    # x축 범위 설정: 사용자 선택에 따른 기간
+    fig.update_xaxes(range=[start_date, end_date])
 
     fig.update_layout(
         xaxis_title='Date',
         yaxis_title='Sales',
+        xaxis_tickformat='%m-%d (%a)',  # x축 포맷 설정
         xaxis_tickangle=-45,
         height=600
     )
@@ -165,7 +193,7 @@ elif menu == 'Product':
 
     # 초기 세팅: 마지막 일의 해당 월의 1일
     initial_end_date = df_gross['date'].max()
-    initial_start_date = initial_end_date.replace(day=1)
+    initial_start_date = initial_end_date - timedelta(days=7)
 
     date_range = st.date_input('SELECT DATE', (initial_start_date, initial_end_date))
     start_date, end_date = date_range
