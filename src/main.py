@@ -39,6 +39,11 @@ font_name = font_manager.FontProperties(fname=font_path).get_name()
 font_manager.fontManager.addfont(font_path)
 rc('font', family=font_name)
 
+##Normalize
+def min_max_normalize(series):
+    return (series - series.min()) / (series.max() - series.min())
+
+
 
 #STREAMLIT
 with st.sidebar:
@@ -71,6 +76,8 @@ if menu == 'Total':
     end_date = sales_per_date_2024['date'].max()
     start_date = end_date - timedelta(days=7)
 
+
+    st.write('##### Daily')
     date_range = st.date_input('SELECT DATE', (start_date, end_date))
     start_date, end_date = date_range
 
@@ -96,6 +103,50 @@ if menu == 'Total':
         xaxis_title='Date',
         yaxis_title='Sales',
         xaxis_tickformat='%m-%d (%a)',  # x축 포맷 설정
+        xaxis_tickangle=-45,
+        height=600
+    )
+
+    st.plotly_chart(fig)
+
+
+
+
+    filtered_data_2024['month'] = filtered_data_2024['date'].dt.to_period('M')
+    sales_per_month_2024 = filtered_data_2024.groupby('month')['sales'].sum().reset_index()
+    sales_per_month_2024['month'] = sales_per_month_2024['month'].dt.to_timestamp()
+
+    # 포맷된 월: yyyy-mm
+    sales_per_month_2024['formatted_month'] = sales_per_month_2024['month'].dt.strftime('%Y-%m')
+
+    end_month = sales_per_month_2024['month'].max()
+    start_month = end_month - pd.DateOffset(months=6)
+
+
+    st.write('##### Monthly')
+
+    # Plotly 그래프 생성
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=sales_per_month_2024['month'], 
+        y=sales_per_month_2024['sales'], 
+        mode='lines+markers+text', 
+        name='2024', 
+        line=dict(color='blue'),
+        fill='tozeroy',
+        fillcolor='rgba(0, 0, 255, 0.3)',
+        text=[f'{s/1e6:.1f}M' for s in sales_per_month_2024['sales']],
+        textposition='top center'
+    ))
+
+    # x축 범위 설정: 사용자 선택에 따른 기간
+    fig.update_xaxes(range=[start_month, end_month])
+
+    fig.update_layout(
+        xaxis_title='Month',
+        yaxis_title='Sales',
+        xaxis_tickformat='%Y-%m',  # x축 포맷 설정
         xaxis_tickangle=-45,
         height=600
     )
@@ -219,19 +270,7 @@ elif menu == 'Product':
     sales_per_product = total_sales_per_product[filtered_products]
     sales_per_product = sales_per_product.sort_values(ascending=False)
 
-    selected_products = [p for p in st.session_state.selected_products if p in sales_per_product.index]
-    updated_selected_products = st.multiselect('SELECT PRODUCT', products, default=selected_products)
-    st.session_state.selected_products = updated_selected_products
 
-    # 필터링된 데이터를 다시 계산
-    filtered_data = df_gross[(df_gross['date'] >= pd.to_datetime(start_date)) & 
-                             (df_gross['date'] <= pd.to_datetime(end_date)) & 
-                             (df_gross['product'].isin(st.session_state.selected_products))]
-
-    # 다시 계산된 데이터를 사용하여 매출 합계 재계산
-    sales_per_product = filtered_data.groupby('product')['sales'].sum()
-    sales_per_product = sales_per_product[average_daily_sales_per_product[average_daily_sales_per_product > 30000].index]
-    sales_per_product = sales_per_product.sort_values(ascending=False)
 
     bar_fig = px.bar(
         x=sales_per_product.index, 
@@ -256,9 +295,11 @@ elif menu == 'Product':
     # Plotly로 꺾은선 그래프 그리기
     line_fig = go.Figure()
 
+    all_product_data = df_gross[df_gross['product'].isin(filtered_products)]
+
     for product in filtered_products:
-        product_data = filtered_data[filtered_data['product'] == product]
-        product_sales_per_day = product_data.groupby('date')['sales'].sum().reindex(pd.date_range(start_date, end_date, freq='D'), fill_value=0)
+        product_data = all_product_data[all_product_data['product'] == product]
+        product_sales_per_day = product_data.groupby('date')['sales'].sum().reindex(pd.date_range(all_product_data['date'].min(), all_product_data['date'].max(), freq='D'), fill_value=0)
         
         line_fig.add_trace(go.Scatter(
             x=product_sales_per_day.index, 
@@ -269,9 +310,13 @@ elif menu == 'Product':
             textposition='top center'
         ))
 
+    # 꺾은선 그래프 초기화면을 선택된 기간으로 설정
+    line_fig.update_xaxes(range=[start_date, end_date])
+
     line_fig.update_layout(
         xaxis_title='Date',
         yaxis_title='Sales',
+        xaxis_tickformat='%m-%d (%a)',  # x축 포맷 설정
         xaxis_tickangle=-45,
         height=600
     )
@@ -279,22 +324,26 @@ elif menu == 'Product':
     st.plotly_chart(line_fig)
 
 elif menu == 'Detailed':
-    st.write('#### **Detailed by Channel**')
+    st.write('#### **Trend by Product**')
+    st.write('##### Product')
+
+    if 'selected_products' not in st.session_state:
+        st.session_state.selected_products = list(df_gross['product'].unique())
 
     # 초기 세팅: 마지막 일의 해당 월의 1일
     initial_end_date = df_gross['date'].max()
-    initial_start_date = initial_end_date.replace(day=1)
+    initial_start_date = initial_end_date - timedelta(days=7)
 
     date_range = st.date_input('SELECT DATE', (initial_start_date, initial_end_date))
     start_date, end_date = date_range
 
-    channels = df_gross['channel'].unique()
-    selected_channels = st.selectbox('SELECT CHANNEL', channels, index=0)
+    # 상품 목록
+    products = df_gross['product'].unique()
 
-    # 선택한 날짜 범위 및 채널에 따라 데이터 필터링
-    filtered_data = df_gross[(df_gross['date'] >= pd.to_datetime(start_date)) &
-                             (df_gross['date'] <= pd.to_datetime(end_date)) &
-                             (df_gross['channel'] == selected_channels)]
+    # 선택한 날짜 범위 및 제품에 따라 데이터 필터링
+    filtered_data = df_gross[(df_gross['date'] >= pd.to_datetime(start_date)) & 
+                             (df_gross['date'] <= pd.to_datetime(end_date)) & 
+                             (df_gross['product'].isin(st.session_state.selected_products))]
 
     # 날짜 및 제품별 매출 합계 계산
     total_sales_per_product = filtered_data.groupby('product')['sales'].sum()
@@ -302,27 +351,46 @@ elif menu == 'Detailed':
     # 기간 내 일수 계산
     num_days = (pd.to_datetime(end_date) - pd.to_datetime(start_date)).days + 1
     
-    # 평균 일일 매출 계산
     average_daily_sales_per_product = total_sales_per_product / num_days
+    filtered_products = average_daily_sales_per_product[average_daily_sales_per_product > 30000].index
 
-    # 평균 일일 매출이 50,000 이상인 제품 필터링
-    filtered_products = average_daily_sales_per_product[average_daily_sales_per_product > 50000].index
-
-    # 총 매출이 50,000 이상인 제품 필터링
-    sales_per_product = total_sales_per_product.loc[filtered_products]
+    sales_per_product = total_sales_per_product[filtered_products]
     sales_per_product = sales_per_product.sort_values(ascending=False)
 
-    plt.figure(figsize=(14, 8))
-    bars = sales_per_product.plot(kind='bar', color=plt.cm.Paired(range(len(sales_per_product))))
+    # 채널 목록
+    channels = ['cafe24', 'growth', 'smartstore', 'wing']
     
-    plt.xlabel('Product')
-    plt.ylabel('Total Sales')
-    plt.title(f'Detailed by {selected_channels}')
-    plt.grid(True)
+    for channel in channels:
+        st.write(f'##### Sales Trend for {channel.capitalize()}')
 
-    plt.xticks(rotation=45)
-    
-    for i, sales in enumerate(sales_per_product):
-        plt.text(i, sales, f'{sales/1e6:.1f}M', fontsize=12, ha='center', va='bottom')
-    
-    st.pyplot(plt)
+        channel_data = df_gross[df_gross['channel'] == channel]
+        line_fig = go.Figure()
+
+        all_product_data = channel_data[channel_data['product'].isin(filtered_products)]
+
+        for product in filtered_products:
+            product_data = all_product_data[all_product_data['product'] == product]
+            product_sales_per_day = product_data.groupby('date')['sales'].sum().reindex(pd.date_range(all_product_data['date'].min(), all_product_data['date'].max(), freq='D'), fill_value=0)
+            
+            line_fig.add_trace(go.Scatter(
+                x=product_sales_per_day.index, 
+                y=product_sales_per_day.values, 
+                mode='lines+markers+text', 
+                name=product,
+                text=[f'{s/1e6:.1f}M' for s in product_sales_per_day],
+                textposition='top center'
+            ))
+
+        # 꺾은선 그래프 초기화면을 선택된 기간으로 설정
+        line_fig.update_xaxes(range=[start_date, end_date])
+
+
+        line_fig.update_layout(
+            xaxis_title='Date',
+            yaxis_title='Sales',
+            xaxis_tickformat='%m-%d (%a)',  # x축 포맷 설정
+            xaxis_tickangle=-45,
+            height=600
+        )
+
+        st.plotly_chart(line_fig)
