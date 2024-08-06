@@ -23,7 +23,7 @@ from datetime import datetime, timedelta
 
 ##Dataframe
 feature_engineering()
-font_path = os.path.join(rf'..\data\font\Pretendard-SemiBold.ttf')
+font_path = rf'..\data\font\Pretendard-SemiBold.ttf'
 df_gross = pd.read_pickle(rf'..\data\processed\gross.pkl')
 
 
@@ -65,13 +65,13 @@ if menu == 'Total':
     today = datetime.today()
 
     #filtered period: 2024. 01. 01
-    filtered_data_2024 = df_gross[(df_gross['date'] >= '2024-01-01') & (df_gross['date'] <= today)]
+    filtered_data_2024 = df_gross[(df_gross['date'] >= '2023-01-01') & (df_gross['date'] <= today)]
 
     #daily gross(sum)
     sales_per_date_2024 = filtered_data_2024.groupby('date')['sales'].sum().reset_index()
 
     #formatted_date: mm-dd (a)
-    sales_per_date_2024['formatted_date'] = sales_per_date_2024['date'].dt.strftime('%m-%d (%a)')
+    sales_per_date_2024['formatted_date'] = sales_per_date_2024['date'].dt.strftime('%y-%m-%d (%a)')
 
     end_date = sales_per_date_2024['date'].max()
     start_date = end_date - timedelta(days=7)
@@ -102,7 +102,7 @@ if menu == 'Total':
     fig.update_layout(
         xaxis_title='Date',
         yaxis_title='Sales',
-        xaxis_tickformat='%m-%d (%a)',  # x축 포맷 설정
+        xaxis_tickformat='%Y-%m-%d (%a)',  # x축 포맷 설정
         xaxis_tickangle=-45,
         height=600
     )
@@ -168,7 +168,7 @@ elif menu == 'Channel':
     def format_number(value):
         return f"{value:,}"
 
-    format_pivot = channel_pivot.applymap(format_number)
+    format_pivot = channel_pivot.map(format_number)
 
     gb = GridOptionsBuilder.from_dataframe(format_pivot.reset_index())
     gb.configure_default_column(filterable=True, sortable=True)
@@ -299,29 +299,58 @@ elif menu == 'Product':
 
     for product in filtered_products:
         product_data = all_product_data[all_product_data['product'] == product]
-        product_sales_per_day = product_data.groupby('date')['sales'].sum().reindex(pd.date_range(all_product_data['date'].min(), all_product_data['date'].max(), freq='D'), fill_value=0)
+        product_sales_per_month = product_data.set_index('date').resample('M')['sales'].sum()
         
         line_fig.add_trace(go.Scatter(
-            x=product_sales_per_day.index, 
-            y=product_sales_per_day.values, 
+            x=product_sales_per_month.index, 
+            y=product_sales_per_month.values, 
             mode='lines+markers+text', 
             name=product,
-            text=[f'{s/1e6:.1f}M' for s in product_sales_per_day],
+            text=[f'{s/1e6:.1f}M' for s in product_sales_per_month],
             textposition='top center'
         ))
 
     # 꺾은선 그래프 초기화면을 선택된 기간으로 설정
-    line_fig.update_xaxes(range=[start_date, end_date])
 
     line_fig.update_layout(
-        xaxis_title='Date',
+        xaxis_title='Month',
         yaxis_title='Sales',
-        xaxis_tickformat='%m-%d (%a)',  # x축 포맷 설정
+        xaxis_tickformat='%Y-%m',  # x축 포맷 설정
         xaxis_tickangle=-45,
         height=600
     )
 
     st.plotly_chart(line_fig)
+
+    # Cat으로 그룹화한 꺾은선 그래프 추가 (월별)
+    st.write('##### Trend by Category')
+
+    line_fig_cat = go.Figure()
+
+    for cat in df_gross['cat'].unique():
+        cat_data = df_gross[df_gross['cat'] == cat]
+        cat_sales_per_month = cat_data.set_index('date').resample('M')['sales'].sum()
+        
+        line_fig_cat.add_trace(go.Scatter(
+            x=cat_sales_per_month.index, 
+            y=cat_sales_per_month.values, 
+            mode='lines+markers+text', 
+            name=cat,
+            text=[f'{s/1e6:.1f}M' for s in cat_sales_per_month],
+            textposition='top center'
+        ))
+
+    # 꺾은선 그래프 초기화면을 선택된 기간으로 설정
+
+    line_fig_cat.update_layout(
+        xaxis_title='Month',
+        yaxis_title='Sales',
+        xaxis_tickformat='%Y-%m',  # x축 포맷 설정
+        xaxis_tickangle=-45,
+        height=600
+    )
+
+    st.plotly_chart(line_fig_cat)
 
 elif menu == 'Detailed':
     st.write('#### **Trend by Product**')
