@@ -96,13 +96,12 @@ if menu == 'Total':
         textposition='top center'
     ))
 
-    # x축 범위 설정: 사용자 선택에 따른 기간
     fig.update_xaxes(range=[start_date, end_date])
 
     fig.update_layout(
         xaxis_title='Date',
         yaxis_title='Sales',
-        xaxis_tickformat='%Y-%m-%d (%a)',  # x축 포맷 설정
+        xaxis_tickformat='%Y-%m-%d (%a)',
         xaxis_tickangle=-45,
         height=600
     )
@@ -116,16 +115,11 @@ if menu == 'Total':
     sales_per_month_2024 = filtered_data_2024.groupby('month')['sales'].sum().reset_index()
     sales_per_month_2024['month'] = sales_per_month_2024['month'].dt.to_timestamp()
 
-    # 포맷된 월: yyyy-mm
     sales_per_month_2024['formatted_month'] = sales_per_month_2024['month'].dt.strftime('%Y-%m')
-
-    end_month = sales_per_month_2024['month'].max()
-    start_month = end_month - pd.DateOffset(months=6)
 
 
     st.write('##### Monthly')
 
-    # Plotly 그래프 생성
     fig = go.Figure()
 
     fig.add_trace(go.Scatter(
@@ -140,13 +134,10 @@ if menu == 'Total':
         textposition='top center'
     ))
 
-    # x축 범위 설정: 사용자 선택에 따른 기간
-    fig.update_xaxes(range=[start_month, end_month])
-
     fig.update_layout(
         xaxis_title='Month',
         yaxis_title='Sales',
-        xaxis_tickformat='%Y-%m',  # x축 포맷 설정
+        xaxis_tickformat='%Y-%m',
         xaxis_tickangle=-45,
         height=600
     )
@@ -190,13 +181,13 @@ elif menu == 'Channel':
     channel_pivot2 = channel_pivot2.fillna(0)
     channel_pivot2 = channel_pivot2.astype(int)
 
-    # 채널 선택
     channels = ['cafe24', 'growth', 'smartstore', 'wing', 'Other']
     selected_channels = st.multiselect('Select Channels', channels, default=channels)
 
+
+    st.write('##### Daily')
     fig = go.Figure()
 
-    # 초기 화면을 마지막 날짜로부터 7일간 설정
     end_date = channel_pivot2.index.max()
     start_date = end_date - timedelta(days=7)
 
@@ -222,18 +213,51 @@ elif menu == 'Channel':
             textposition='top center'
         ))
 
-    # x축 범위 설정: 사용자 선택에 따른 기간
     fig.update_xaxes(range=[start_date, end_date])
 
     fig.update_layout(
         xaxis_title='Date',
         yaxis_title='Sales',
-        xaxis_tickformat='%m-%d (%a)',  # x축 포맷 설정
+        xaxis_tickformat='%m-%d (%a)',
         xaxis_tickangle=-45,
         height=600
     )
 
     st.plotly_chart(fig)
+
+    df_gross['month'] = df_gross['date'].dt.to_period('M')
+    monthly_pivot = pd.pivot_table(df_gross, values='sales', index=['month'], columns=['channel'], aggfunc='sum')
+    monthly_pivot['Total'] = monthly_pivot.sum(axis=1)
+    monthly_pivot = monthly_pivot[['cafe24', 'growth', 'smartstore', 'wing', 'Other', 'Total']]
+    monthly_pivot = monthly_pivot.sort_index()
+    monthly_pivot = monthly_pivot.fillna(0)
+    monthly_pivot = monthly_pivot.astype(int)
+
+
+    st.write('##### Monthly')
+    fig_monthly = go.Figure()
+
+    for channel in selected_channels:
+        fig_monthly.add_trace(go.Scatter(
+            x=monthly_pivot.index.to_timestamp(),
+            y=monthly_pivot[channel],
+            mode='lines+markers+text',
+            name=channel,
+            line=dict(color=ch_colors[channel]),
+            text=[f'{s/1e6:.1f}M' for s in monthly_pivot[channel]],
+            textposition='top center'
+        ))
+
+
+    fig_monthly.update_layout(
+        xaxis_title='Month',
+        yaxis_title='Sales',
+        xaxis_tickformat='%Y-%m',  # x축 포맷 설정
+        xaxis_tickangle=-45,
+        height=600
+    )
+
+    st.plotly_chart(fig_monthly)
 
 elif menu == 'Product':
     st.write('#### **Trend by Product**')
@@ -366,33 +390,35 @@ elif menu == 'Detailed':
     date_range = st.date_input('SELECT DATE', (initial_start_date, initial_end_date))
     start_date, end_date = date_range
 
-    # 상품 목록
-    products = df_gross['product'].unique()
-
     # 선택한 날짜 범위 및 제품에 따라 데이터 필터링
-    filtered_data = df_gross[(df_gross['date'] >= pd.to_datetime(start_date)) & 
-                             (df_gross['date'] <= pd.to_datetime(end_date)) & 
-                             (df_gross['product'].isin(st.session_state.selected_products))]
+    df_gross_filtered = df_gross[(df_gross['date'] >= pd.to_datetime(start_date)) & 
+                                 (df_gross['date'] <= pd.to_datetime(end_date))]
 
-    # 날짜 및 제품별 매출 합계 계산
-    total_sales_per_product = filtered_data.groupby('product')['sales'].sum()
+    # 상품 목록
+    products = df_gross_filtered['product'].unique()
+
+
+    df_gross_filtered = df_gross_filtered[df_gross_filtered['product'].isin(st.session_state.selected_products)]
+
+
+    total_sales_per_product = df_gross_filtered.groupby('product')['sales'].sum()
 
     # 기간 내 일수 계산
     num_days = (pd.to_datetime(end_date) - pd.to_datetime(start_date)).days + 1
     
     average_daily_sales_per_product = total_sales_per_product / num_days
-    filtered_products = average_daily_sales_per_product[average_daily_sales_per_product > 30000].index
+    filtered_products = average_daily_sales_per_product[average_daily_sales_per_product > 50000].index
 
     sales_per_product = total_sales_per_product[filtered_products]
     sales_per_product = sales_per_product.sort_values(ascending=False)
 
-    # 채널 목록
+
     channels = ['cafe24', 'growth', 'smartstore', 'wing']
     
     for channel in channels:
         st.write(f'##### Sales Trend for {channel.capitalize()}')
 
-        channel_data = df_gross[df_gross['channel'] == channel]
+        channel_data = df_gross_filtered[df_gross_filtered['channel'] == channel]
         line_fig = go.Figure()
 
         all_product_data = channel_data[channel_data['product'].isin(filtered_products)]
@@ -410,14 +436,12 @@ elif menu == 'Detailed':
                 textposition='top center'
             ))
 
-        # 꺾은선 그래프 초기화면을 선택된 기간으로 설정
         line_fig.update_xaxes(range=[start_date, end_date])
-
 
         line_fig.update_layout(
             xaxis_title='Date',
             yaxis_title='Sales',
-            xaxis_tickformat='%m-%d (%a)',  # x축 포맷 설정
+            xaxis_tickformat='%m-%d (%a)',
             xaxis_tickangle=-45,
             height=600
         )
