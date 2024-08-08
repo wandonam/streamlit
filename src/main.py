@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 ##Dataframe
 feature_engineering()
 font_path = rf'..\data\font\Pretendard-SemiBold.ttf'
-df_gross = pd.read_pickle(rf'..\data\processed\gross.pkl')
+df_gross = pd.read_pickle(rf'..\data\raw\gross.pkl')
 
 
 ##FONT

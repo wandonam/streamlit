@@ -97,4 +97,4 @@ def feature_engineering():
     df_gross['sales'] = df_gross['sales'].fillna(0).astype(int)
 
     ## Save
-    df_gross.to_pickle('..\data\processed\gross.pkl')
+    df_gross.to_pickle(rf'..\data\raw\gross.pkl')
