@@ -1,23 +1,13 @@
 # LIBRARY
 import streamlit as st
 from streamlit_option_menu import option_menu
-import streamlit.components.v1 as html
 from st_aggrid import AgGrid, GridOptionsBuilder
-import matplotlib.pyplot as plt
-from matplotlib import rcParams
-from matplotlib.font_manager import FontProperties
 from matplotlib import font_manager, rc
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-from  PIL import Image
-import numpy as np
 import pandas as pd
-import io
-import os
 from colors import Color
 from feature import feature_engineering
-import base64
 from datetime import datetime, timedelta
 
 
@@ -28,21 +18,9 @@ df_gross = pd.read_pickle(rf'..\data\processed\gross.pkl')
 
 
 ##FONT
-def get_base64_encoded_font(font_path):
-    with open(font_path, "rb") as font_file:
-        encoded_string = base64.b64encode(font_file.read()).decode()
-    return encoded_string
-
-encoded_font = get_base64_encoded_font(font_path)
-
 font_name = font_manager.FontProperties(fname=font_path).get_name()
 font_manager.fontManager.addfont(font_path)
 rc('font', family=font_name)
-
-##Normalize
-def min_max_normalize(series):
-    return (series - series.min()) / (series.max() - series.min())
-
 
 
 #STREAMLIT

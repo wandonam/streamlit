@@ -4,4 +4,3 @@ streamlit-aggrid
 pandas
 matplotlib
 plotly
-openpyxl
